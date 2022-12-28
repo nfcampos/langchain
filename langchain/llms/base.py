@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Union
 
 import yaml
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, Field
 
 import langchain
 from langchain.schema import Generation
-from langchain.tracing import get_tracer
+from langchain.tracing import BaseTracer, get_tracer
 
 
 class LLMResult(NamedTuple):
@@ -26,6 +26,7 @@ class BaseLLM(BaseModel, ABC):
     """LLM wrapper should take in a prompt and return a string."""
 
     cache: Optional[bool] = None
+    tracer: BaseTracer = Field(default_factory=get_tracer)
 
     class Config:
         """Configuration for this pydantic object."""
@@ -49,9 +50,9 @@ class BaseLLM(BaseModel, ABC):
                 raise ValueError(
                     "Asked to cache, but no cache found at `langchain.cache`."
                 )
-            get_tracer().start_llm_trace({"name": self.__class__.__name__}, prompts)
+            self.tracer.start_llm_trace({"name": self.__class__.__name__}, prompts)
             output = self._generate(prompts, stop=stop)
-            get_tracer().end_llm_trace(
+            self.tracer.end_llm_trace(
                 [[g.text for g in gens] for gens in output.generations]
             )
             return output
@@ -68,9 +69,9 @@ class BaseLLM(BaseModel, ABC):
             else:
                 missing_prompts.append(prompt)
                 missing_prompt_idxs.append(i)
-        get_tracer().start_llm_trace({"name": self.__class__.__name__}, missing_prompts)
+        self.tracer.start_llm_trace({"name": self.__class__.__name__}, missing_prompts)
         new_results = self._generate(missing_prompts, stop=stop)
-        get_tracer().end_llm_trace(
+        self.tracer.end_llm_trace(
             [[g.text for g in gens] for gens in new_results.generations]
         )
         for i, result in enumerate(new_results.generations):

@@ -8,7 +8,7 @@ from langchain.tracing.stdout import StdOutTracer
 
 
 def get_tracer() -> BaseTracer:
-    """Get the tracer."""
+    """Get the default tracer."""
 
     if "LANGCHAIN_TRACER" in os.environ:
         tracer = os.environ["LANGCHAIN_TRACER"]

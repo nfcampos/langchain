@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from dataclasses_json import dataclass_json
+from pydantic import BaseModel
 
 
 @dataclass_json
@@ -57,7 +58,7 @@ class TracerException(Exception):
     """Base class for exceptions in tracing module."""
 
 
-class BaseTracer(ABC):
+class BaseTracer(BaseModel, ABC):
     """Base interface for tracing runs."""
 
     @abstractmethod

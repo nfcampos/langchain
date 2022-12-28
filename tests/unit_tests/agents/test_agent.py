@@ -46,5 +46,5 @@ def test_agent_bad_action() -> None:
     agent = initialize_agent(
         tools, fake_llm, agent="zero-shot-react-description", verbose=True
     )
-    output = agent.run("when was langchain made")
+    output = yield from agent.run("when was langchain made")
     assert output == "curses foiled again"

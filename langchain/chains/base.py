@@ -109,7 +109,7 @@ class Chain(BaseModel, ABC):
             print(
                 f"\n\n\033[1m> Entering new {self.__class__.__name__} chain...\033[0m"
             )
-        outputs = self._call(inputs)
+        outputs = yield from self._call(inputs)
         if self.verbose:
             print(f"\n\033[1m> Finished {self.__class__.__name__} chain.\033[0m")
         self._validate_outputs(outputs)
@@ -135,10 +135,12 @@ class Chain(BaseModel, ABC):
         if args and not kwargs:
             if len(args) != 1:
                 raise ValueError("`run` supports only one positional argument.")
-            return self(args[0])[self.output_keys[0]]
+            output = yield from self(args[0])
+            return output[self.output_keys[0]]
 
         if kwargs and not args:
-            return self(kwargs)[self.output_keys[0]]
+            output = yield from self(kwargs)
+            return output[self.output_keys[0]]
 
         raise ValueError(
             f"`run` supported with either positional arguments or keyword arguments"

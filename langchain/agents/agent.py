@@ -1,6 +1,7 @@
 """Chain that takes in an input and produces an action and action input."""
 from __future__ import annotations
 
+import inspect
 import logging
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -16,7 +17,7 @@ from langchain.llms.base import BaseLLM
 from langchain.prompts.base import BasePromptTemplate
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
-from langchain.schema import AgentAction, AgentFinish
+from langchain.schema import AgentAction, AgentFinish, ActionFinish
 
 logger = logging.getLogger()
 
@@ -187,6 +188,8 @@ class AgentExecutor(Chain, BaseModel):
         while True:
             # Call the LLM to see what to do.
             output = self.agent.plan(intermediate_steps, **inputs)
+            # Yield the output for the caller to log, consume, etc.
+            yield output
             # If the tool chosen is the finishing tool, then we end and return.
             if isinstance(output, AgentFinish):
                 if self.verbose:
@@ -197,12 +200,19 @@ class AgentExecutor(Chain, BaseModel):
                 return final_output
             if self.verbose:
                 langchain.logger.log_agent_action(output, color="green")
-            # And then we lookup the tool
+            # Otherwise, then we lookup the tool
             if output.tool in name_to_tool_map:
                 chain = name_to_tool_map[output.tool]
                 # We then call the tool on the tool input to get an observation
-                observation = chain(output.tool_input)
+                handle = chain(output.tool_input)
                 color = color_mapping[output.tool]
+
+                if inspect.isgenerator(handle):  # sync generator
+                    observation = yield from handle
+                else:  # sync function
+                    observation: ActionFinish = handle
+
+                yield observation
             else:
                 observation = f"{output.tool} is not a valid tool, try another one."
                 color = None

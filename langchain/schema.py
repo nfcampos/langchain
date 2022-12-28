@@ -24,3 +24,18 @@ class Generation(NamedTuple):
     text: str
     """Generated text output."""
     # TODO: add log probs
+
+
+class ActionMessage(NamedTuple):
+    """Agent's action to take."""
+
+    message_type: str
+    message: str
+    log: str = None
+
+
+class ActionFinish(NamedTuple):
+    """Agent's return value."""
+
+    observation: str
+    log: str
